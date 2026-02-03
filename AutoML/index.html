@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoML Master Class</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #4f46e5; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        select { background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 0.5rem center; background-repeat: no-repeat; background-size: 1.5em 1.5em; padding-right: 2.5rem; -webkit-appearance: none; appearance: none; }
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .tooltip { position: relative; display: inline-block; cursor: help; margin-left: 5px; color: #6366f1; }
+        .tooltip .tooltip-text { visibility: hidden; width: 220px; background-color: #1e293b; color: #fff; text-align: left; border-radius: 6px; padding: 10px; position: absolute; z-index: 50; bottom: 125%; left: 50%; margin-left: -110px; opacity: 0; transition: opacity 0.3s; font-size: 0.75rem; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .tooltip .tooltip-text::after { content: ""; position: absolute; top: 100%; left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: #1e293b transparent transparent transparent; }
+        .tooltip:hover .tooltip-text { visibility: visible; opacity: 1; }
+        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+    </style>
+</head>
+<body class="bg-gray-100 text-slate-800 font-sans min-h-screen flex flex-col">
+
+    <nav class="bg-indigo-900 text-white p-4 shadow-lg sticky top-0 z-40 border-b-4 border-indigo-500">
+        <div class="container mx-auto flex justify-between items-center px-4">
+            <h1 class="text-2xl font-bold flex items-center gap-2 tracking-wide cursor-pointer" onclick="location.reload()">
+                <i class="fas fa-brain"></i> AutoML <span class="text-indigo-300">Master Class</span>
+            </h1>
+            <div class="flex gap-3">
+                <button onclick="location.reload()" class="text-xs bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-full transition shadow-md">New Project</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto p-6 max-w-7xl flex-grow flex flex-col justify-center">
+        
+        <div id="landing-section" class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto w-full fade-in">
+            <div onclick="showUpload()" class="bg-white p-10 rounded-3xl shadow-xl border border-gray-100 text-center cursor-pointer transition-all duration-300 card-hover group">
+                <div class="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-indigo-100 transition">
+                    <i class="fas fa-rocket text-5xl text-indigo-600"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Start New Project</h2>
+                <p class="text-gray-500">Upload CSV/Excel, Analyze Data, and Train Models.</p>
+            </div>
+
+            <a href="/dashboard" class="bg-white p-10 rounded-3xl shadow-xl border border-gray-100 text-center cursor-pointer transition-all duration-300 card-hover group block decoration-none">
+                <div class="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-green-100 transition">
+                    <i class="fas fa-chart-line text-5xl text-green-600"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">View Dashboard</h2>
+                <p class="text-gray-500">Compare results, view accuracy charts and confusion matrices.</p>
+            </a>
+        </div>
+
+        <div id="upload-section" class="hidden bg-white p-12 rounded-2xl shadow-xl border border-gray-200 text-center hover:shadow-2xl transition-all cursor-pointer mt-8 fade-in" onclick="document.getElementById('fileInput').click()">
+            <div class="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition duration-300">
+                <i class="fas fa-file-csv text-5xl text-indigo-600"></i>
+            </div>
+            <h2 class="text-3xl font-bold mb-3 text-gray-800">Upload & Learn</h2>
+            <p class="text-gray-500 text-lg">Click to select your dataset (CSV/Excel)</p>
+            <input type="file" id="fileInput" class="hidden" onchange="handleFileUpload()">
+        </div>
+
+        <div id="workspace-section" class="hidden space-y-8 fade-in mt-8">
+            
+            <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold flex items-center gap-2 text-gray-800"><i class="fas fa-tools text-indigo-500"></i> Feature Engineering</h3>
+                    <span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">Modify Data</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="bg-red-50 p-4 rounded-lg border border-red-100">
+                        <label class="block text-xs font-bold text-red-500 uppercase mb-2">Delete Column</label>
+                        <div class="flex gap-2">
+                            <select id="fe-del-col" class="w-full border border-red-200 rounded p-2 text-sm outline-none bg-white"></select>
+                            <button onclick="engineerFeature('delete')" class="bg-red-500 hover:bg-red-600 text-white px-4 rounded font-bold text-sm shadow transition">Delete</button>
+                        </div>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                        <label class="block text-xs font-bold text-blue-500 uppercase mb-2">Create Feature</label>
+                        <div class="flex gap-2 items-center">
+                            <input id="fe-new-name" type="text" placeholder="New Name" class="w-1/4 border border-blue-200 rounded p-2 text-sm outline-none focus:border-blue-400">
+                            <span class="text-blue-400 font-bold">=</span>
+                            <select id="fe-col1" class="w-1/4 border border-blue-200 rounded p-2 text-sm outline-none bg-white"></select>
+                            
+                            <select id="fe-operator" class="w-16 border border-blue-200 rounded p-2 text-sm outline-none bg-white font-bold text-center">
+                                <option value="+">+</option>
+                                <option value="-">-</option>
+                                <option value="*">×</option>
+                                <option value="/">÷</option>
+                            </select>
+                            
+                            <select id="fe-col2" class="w-1/4 border border-blue-200 rounded p-2 text-sm outline-none bg-white"></select>
+                            <button onclick="engineerFeature('create')" class="bg-blue-500 hover:bg-blue-600 text-white px-3 rounded font-bold text-sm shadow transition">Go</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-xl font-bold flex items-center gap-2 text-gray-800"><i class="fas fa-chart-pie text-indigo-500"></i> Visualization Playground</h3>
+                    <span class="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">Exploratory Data Analysis</span>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <div class="lg:col-span-1 space-y-4 bg-gray-50 p-4 rounded-lg border border-gray-100 h-fit">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Chart Type</label>
+                            <select id="viz-type" class="w-full border border-gray-300 rounded p-2 text-sm focus:border-indigo-500 outline-none" onchange="toggleYAxis()">
+                                <option value="scatter">Scatter Plot</option><option value="line">Line Chart</option><option value="bar">Bar Chart</option><option value="hist">Histogram</option><option value="box">Box Plot</option><option value="heatmap">Correlation Heatmap</option>
+                            </select>
+                        </div>
+                        <div id="x-axis-group"><label class="block text-xs font-bold text-gray-500 uppercase mb-1">X Axis</label><select id="viz-x" class="w-full border border-gray-300 rounded p-2 text-sm outline-none"></select></div>
+                        <div id="y-axis-group"><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Y Axis</label><select id="viz-y" class="w-full border border-gray-300 rounded p-2 text-sm outline-none"></select></div>
+                        <div><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Hue</label><select id="viz-hue" class="w-full border border-gray-300 rounded p-2 text-sm outline-none"></select></div>
+                        <button onclick="generatePlot()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-bold shadow transition flex justify-center items-center gap-2"><i class="fas fa-paint-brush"></i> Generate Plot</button>
+                    </div>
+                    <div class="lg:col-span-3 flex items-center justify-center bg-gray-50 rounded-lg border border-dashed border-gray-300 min-h-[400px] relative overflow-hidden">
+                        <div id="viz-loader" class="hidden absolute inset-0 bg-white/80 flex items-center justify-center z-10"><div class="loader"></div></div>
+                        <img id="viz-result" class="max-h-[450px] w-full object-contain hidden rounded shadow-sm" src="">
+                        <div id="viz-placeholder" class="text-center text-gray-400"><i class="fas fa-chart-area text-4xl mb-2 opacity-50"></i><p>Select options and click Generate</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                <h3 class="text-lg font-bold mb-4 flex items-center gap-2"><i class="fas fa-project-diagram text-indigo-500"></i> Global Correlation</h3>
+                <div id="heatmap-container" class="flex justify-center bg-gray-50 p-4 rounded-lg min-h-[250px] items-center overflow-auto"></div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <div class="lg:col-span-1 space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-md border border-gray-200 sticky top-24">
+                        <h3 class="font-bold text-gray-800 text-xl mb-6 border-b pb-4">Training Config</h3>
+                        <div class="mb-5"><label class="block text-xs font-bold text-gray-500 uppercase mb-2">Target Variable</label><select id="targetSelect" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none bg-gray-50"></select></div>
+                        
+                        <div class="mb-5">
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Algorithm</label>
+                            <select id="modelSelect" onchange="updateHyperparameters()" class="w-full border border-gray-300 rounded-lg p-2.5 text-sm outline-none bg-gray-50">
+                                <optgroup label="Classification">
+                                    <option value="rf_clf">Random Forest Classifier</option>
+                                    <option value="log_reg">Logistic Regression</option>
+                                    <option value="dt_clf">Decision Tree Classifier</option>
+                                    <option value="knn_clf">KNN Classifier</option>
+                                    <option value="svm_clf">SVM Classifier</option>
+                                    <option value="nb_clf">Naive Bayes</option>
+                                </optgroup>
+                                <optgroup label="Regression">
+                                    <option value="rf_reg">Random Forest Regressor</option>
+                                    <option value="lin_reg">Linear Regression</option>
+                                    <option value="dt_reg">Decision Tree Regressor</option>
+                                    <option value="knn_reg">KNN Regressor</option>
+                                    <option value="svr_reg">SVR</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <div id="hyperparams-container" class="mb-8 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <h4 class="text-xs font-bold text-gray-500 uppercase mb-3 border-b pb-1">Hyperparameters</h4>
+                            <div id="hp-inputs" class="space-y-3"></div>
+                        </div>
+
+                        <button onclick="trainModel()" class="w-full bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 text-white py-4 rounded-xl font-bold text-lg shadow-lg">Start Training 🚀</button>
+                    </div>
+                </div>
+                <div class="lg:col-span-3">
+                    <h3 class="font-bold text-gray-700 mb-4 text-xl">Preprocessing Pipeline</h3>
+                    <div id="columns-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-modal" class="fixed inset-0 bg-black/80 hidden z-50 flex items-center justify-center backdrop-blur-md">
+        <div class="bg-white rounded-2xl w-full max-w-5xl max-h-[95vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-5 border-b flex justify-between items-center bg-gray-50"><h3 id="modal-title" class="text-xl font-bold text-gray-800">Details</h3><button onclick="closeModal()" class="text-gray-400 hover:text-red-500"><i class="fas fa-times text-2xl"></i></button></div>
+            <div class="p-8 overflow-y-auto flex-1 relative bg-white">
+                <div id="modal-loader" class="hidden flex flex-col items-center justify-center h-full"><div class="loader"></div><p class="text-gray-500 mt-4 font-medium">Processing...</p></div>
+                <div id="analysis-content" class="hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div><h4 class="font-bold text-indigo-600 mb-4 text-sm uppercase">📊 Statistics</h4><table class="w-full text-sm"><tbody id="stats-table"></tbody></table></div>
+                        <div class="space-y-6"><div><img id="plot-dist" class="w-full rounded shadow-sm"></div><div id="box-plot-container"><img id="plot-box" class="w-full rounded shadow-sm"></div></div>
+                    </div>
+                </div>
+                
+                <div id="result-content" class="hidden flex flex-col items-center justify-center py-10">
+                    <div class="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-5xl mb-6 shadow-md"><i class="fas fa-check"></i></div>
+                    <h2 class="text-3xl font-bold text-gray-800 mb-2">Training Successful!</h2>
+                    <div id="metrics-grid" class="grid grid-cols-1 gap-4 w-full max-w-sm mb-8"></div>
+                    <div id="dynamic-btns" class="w-full max-w-md space-y-4"></div>
+                </div>
+                
+                <div id="error-content" class="hidden text-center py-10"><h3 class="text-xl font-bold text-gray-800">Failed</h3><p id="error-msg" class="text-red-600 bg-red-50 p-4 rounded-lg mt-4 inline-block"></p></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="predict-modal" class="fixed inset-0 bg-black/80 hidden z-50 flex items-center justify-center backdrop-blur-sm">
+        <div class="bg-white rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden">
+            <div class="p-5 border-b flex justify-between items-center bg-indigo-900 text-white"><h3 class="text-lg font-bold"><i class="fas fa-robot mr-2"></i>Live Prediction</h3><button onclick="document.getElementById('predict-modal').classList.add('hidden')" class="hover:text-red-300"><i class="fas fa-times"></i></button></div>
+            <div class="p-6 max-h-[70vh] overflow-y-auto">
+                <div id="predict-form" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                <div id="prediction-result" class="hidden mt-6 bg-green-50 border border-green-200 p-4 rounded-lg text-center"><p class="text-sm text-green-600 font-bold uppercase">Prediction</p><p id="pred-value" class="text-3xl font-bold text-green-800 mt-1">--</p></div>
+            </div>
+            <div class="p-5 border-t bg-gray-50 flex justify-end gap-3"><button onclick="runPrediction()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-bold shadow">Predict Now</button></div>
+        </div>
+    </div>
+
+    <script>
+        const apiBase = ''; 
+        let sessionId = null;
+        let currentColumns = [];
+
+        function showUpload() {
+            document.getElementById('landing-section').classList.add('hidden');
+            document.getElementById('upload-section').classList.remove('hidden');
+        }
+
+        async function handleFileUpload() {
+            const file = document.getElementById('fileInput').files[0];
+            if(!file) return;
+            const form = new FormData(); form.append('file', file);
+            document.getElementById('upload-section').innerHTML = '<div class="loader"></div><p class="font-bold mt-4 text-lg">Initializing X-Ray Scan...</p>';
+            try {
+                const res = await fetch(`${apiBase}/upload`, {method:'POST', body:form});
+                const data = await res.json();
+                if(data.error) throw new Error(data.error);
+                sessionId = data.session_id; currentColumns = data.columns;
+                
+                // Update FE controls
+                updateFEControls(data.columns);
+
+                document.getElementById('heatmap-container').innerHTML = data.heatmap ? `<img src="data:image/png;base64,${data.heatmap}" class="max-h-[350px] rounded shadow-sm">` : '<p>No Correlation</p>';
+                renderConfig(data.columns); initVizControls(data.columns);
+                document.getElementById('upload-section').classList.add('hidden');
+                document.getElementById('workspace-section').classList.remove('hidden');
+            } catch(e) { alert(e.message); location.reload(); }
+        }
+
+        // Feature Engineering Logic
+        function updateFEControls(columns) {
+            const delSelect = document.getElementById('fe-del-col');
+            const col1 = document.getElementById('fe-col1');
+            const col2 = document.getElementById('fe-col2');
+            
+            [delSelect, col1, col2].forEach(sel => sel.innerHTML = '');
+            
+            columns.forEach(c => {
+                const opt = `<option value="${c.name}">${c.name}</option>`;
+                delSelect.innerHTML += opt;
+                if(c.type === 'Numeric') {
+                    col1.innerHTML += opt;
+                    col2.innerHTML += opt;
+                }
+            });
+        }
+
+        async function engineerFeature(action) {
+            const payload = { session_id: sessionId, action: action };
+            
+            if(action === 'delete') {
+                payload.col = document.getElementById('fe-del-col').value;
+            } else {
+                payload.new_col_name = document.getElementById('fe-new-name').value;
+                payload.col1 = document.getElementById('fe-col1').value;
+                payload.col2 = document.getElementById('fe-col2').value;
+                payload.operator = document.getElementById('fe-operator').value; // Get Operator
+                
+                if(!payload.new_col_name) return alert("Please enter a new column name");
+            }
+
+            try {
+                const res = await fetch(`${apiBase}/engineer`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)});
+                const data = await res.json();
+                if(data.error) throw new Error(data.error);
+                
+                // Refresh UI with new data
+                currentColumns = data.columns;
+                renderConfig(data.columns); 
+                initVizControls(data.columns);
+                updateFEControls(data.columns);
+                alert("Feature updated successfully!");
+            } catch(e) { alert(e.message); }
+        }
+
+        // Viz Logic
+        function initVizControls(columns) {
+            const vizX = document.getElementById('viz-x'); const vizY = document.getElementById('viz-y'); const vizHue = document.getElementById('viz-hue');
+            vizX.innerHTML = ''; vizY.innerHTML = ''; vizHue.innerHTML = '<option value="None">None</option>';
+            columns.forEach(col => { const opt = `<option value="${col.name}">${col.name}</option>`; vizX.innerHTML+=opt; vizY.innerHTML+=opt; vizHue.innerHTML+=opt; });
+            if(columns.length>1) vizY.selectedIndex=1;
+        }
+        function toggleYAxis() {
+            const type = document.getElementById('viz-type').value;
+            const yGroup = document.getElementById('y-axis-group');
+            if(type === 'hist' || type === 'heatmap') yGroup.classList.add('opacity-50', 'pointer-events-none');
+            else yGroup.classList.remove('opacity-50', 'pointer-events-none');
+        }
+        async function generatePlot() {
+            const btn = document.querySelector('button[onclick="generatePlot()"]');
+            document.getElementById('viz-loader').classList.remove('hidden');
+            const payload = { session_id: sessionId, plot_type: document.getElementById('viz-type').value, x_col: document.getElementById('viz-x').value, y_col: document.getElementById('viz-y').value, hue_col: document.getElementById('viz-hue').value };
+            try {
+                const res = await fetch(`${apiBase}/visualize`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)});
+                const data = await res.json();
+                if(data.error) throw new Error(data.error);
+                document.getElementById('viz-result').src = `data:image/png;base64,${data.plot}`;
+                document.getElementById('viz-result').classList.remove('hidden'); document.getElementById('viz-placeholder').classList.add('hidden');
+            } catch(e) { alert(e.message); } finally { document.getElementById('viz-loader').classList.add('hidden'); }
+        }
+
+        function renderConfig(columns) {
+            const grid = document.getElementById('columns-grid'); const targetSel = document.getElementById('targetSelect');
+            grid.innerHTML = ''; targetSel.innerHTML = '';
+            columns.forEach(col => {
+                const opt = document.createElement('option'); opt.value = col.name; opt.innerText = col.name; targetSel.appendChild(opt);
+                grid.innerHTML += `<div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm col-card" data-col="${col.name}">
+                    <div class="flex justify-between items-start mb-4 border-b pb-3"><div><h4 class="font-bold text-gray-800 text-sm truncate w-40">${col.name}</h4><span class="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold">${col.type}</span></div><button onclick="openAnalysis('${col.name}')" class="text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg text-xs font-bold">X-Ray</button></div>
+                    <div class="mb-3"><label class="text-[10px] font-bold text-gray-400">IMPUTE</label><select class="w-full border rounded text-xs p-2 mt-1" data-setting="impute"><option value="none">None</option><option value="mean" ${col.defaults.impute==='mean'?'selected':''}>Mean</option><option value="median" ${col.defaults.impute==='median'?'selected':''}>Median</option><option value="most_frequent" ${col.defaults.impute==='most_frequent'?'selected':''}>Most Frequent</option></select></div>
+                    ${col.type==='Numeric' ? `<div class="mb-3"><label class="text-[10px] font-bold text-gray-400">SCALE</label><select class="w-full border rounded text-xs p-2 mt-1" data-setting="scale"><option value="none">None</option><option value="standard" ${col.defaults.scale==='standard'?'selected':''}>Standard</option><option value="minmax" ${col.defaults.scale==='minmax'?'selected':''}>MinMax</option><option value="robust" ${col.defaults.scale==='robust'?'selected':''}>Robust</option></select></div><div class="mb-3"><label class="text-[10px] font-bold text-gray-400">TRANSFORM</label><select class="w-full border rounded text-xs p-2 mt-1" data-setting="transform"><option value="none">None</option><option value="log" ${col.defaults.transform==='log'?'selected':''}>Log</option><option value="power" ${col.defaults.transform==='power'?'selected':''}>Power</option><option value="quantile">Quantile</option></select></div>` : `<div class="mb-3"><label class="text-[10px] font-bold text-gray-400">ENCODE</label><select class="w-full border rounded text-xs p-2 mt-1" data-setting="encode"><option value="none">Drop</option><option value="onehot" ${col.defaults.encode==='onehot'?'selected':''}>One-Hot</option><option value="ordinal" ${col.defaults.encode==='ordinal'?'selected':''}>Ordinal</option></select></div>`}
+                </div>`;
+            });
+        }
+
+        async function openAnalysis(colName) {
+            prepareModal(colName);
+            try {
+                const res = await fetch(`${apiBase}/column_details`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({session_id:sessionId, col_name:colName})});
+                const data = await res.json();
+                document.getElementById('stats-table').innerHTML = Object.entries(data.stats).map(([k,v]) => `<tr class="border-b"><td class="py-2 text-gray-500">${k}</td><td class="py-2 text-right font-bold">${v}</td></tr>`).join('');
+                document.getElementById('plot-dist').src = `data:image/png;base64,${data.plots.dist}`;
+                if(data.plots.box) { document.getElementById('plot-box').src = `data:image/png;base64,${data.plots.box}`; document.getElementById('box-plot-container').classList.remove('hidden'); } else { document.getElementById('box-plot-container').classList.add('hidden'); }
+                showContent('analysis-content');
+            } catch(e) { showError(e.message); }
+        }
+
+        function updateHyperparameters() {
+            const model = document.getElementById('modelSelect').value;
+            const container = document.getElementById('hp-inputs');
+            container.innerHTML = '';
+
+            let inputs = '';
+            // RF
+            if (model.includes('rf_')) {
+                inputs += createInput('n_estimators', 'number', '100', 'Trees');
+                inputs += createInput('max_depth', 'number', '', 'Max Depth (Optional)');
+            }
+            // LogReg
+            else if (model === 'log_reg') {
+                inputs += createInput('C', 'number', '1.0', 'C (Inverse Reg)', '0.01');
+                inputs += createInput('max_iter', 'number', '1000', 'Max Iterations');
+            }
+            // KNN
+            else if (model.includes('knn_')) {
+                inputs += createInput('n_neighbors', 'number', '5', 'Neighbors (k)');
+            }
+            // SVM / SVR
+            else if (model.includes('svm_') || model.includes('svr_')) {
+                inputs += createInput('C', 'number', '1.0', 'C (Regularization)', '0.1');
+                inputs += `<div class="mb-2"><label class="text-[10px] font-bold text-gray-500">Kernel</label><select id="hp_kernel" class="w-full border rounded p-1 text-sm"><option value="rbf">RBF</option><option value="linear">Linear</option><option value="poly">Poly</option></select></div>`;
+            }
+            // DT
+            else if (model.includes('dt_')) {
+                inputs += createInput('max_depth', 'number', '', 'Max Depth (Optional)');
+            }
+            else {
+                inputs = '<p class="text-xs text-gray-400 italic">No common hyperparameters.</p>';
+            }
+            container.innerHTML = inputs;
+        }
+
+        function createInput(id, type, val, label, step="1") {
+            return `<div class="mb-2"><label class="text-[10px] font-bold text-gray-500 uppercase">${label}</label><input type="${type}" id="hp_${id}" value="${val}" step="${step}" class="w-full border border-gray-300 rounded p-1.5 text-sm focus:border-indigo-500 outline-none"></div>`;
+        }
+
+        async function trainModel() {
+            const plan = {};
+            document.querySelectorAll('.col-card').forEach(card => { const s = {}; card.querySelectorAll('select').forEach(sel => s[sel.dataset.setting] = sel.value); plan[card.dataset.col] = s; });
+
+            const hp = {};
+            document.getElementById('hp-inputs').querySelectorAll('input, select').forEach(el => {
+                const key = el.id.replace('hp_', '');
+                if (el.value !== '') hp[key] = el.value;
+            });
+
+            prepareModal("Training Model...");
+            try {
+                const res = await fetch(`${apiBase}/train`, {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({
+                        session_id: sessionId, plan: plan, target: document.getElementById('targetSelect').value, 
+                        model: document.getElementById('modelSelect').value,
+                        hyperparameters: hp
+                    })
+                });
+                const result = await res.json();
+                if(result.status !== 'success') throw new Error(result.error);
+                
+                document.getElementById('metrics-grid').innerHTML = Object.entries(result.metrics).map(([k,v])=>`<div class="bg-white p-4 rounded-xl shadow-sm border text-center"><div class="text-xs text-gray-500 uppercase font-bold mb-1">${k}</div><div class="text-3xl font-bold text-indigo-600">${v}</div></div>`).join('');
+                document.getElementById('dynamic-btns').innerHTML = `
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <button onclick="setupPrediction()" class="bg-indigo-600 text-white py-3 rounded-lg font-bold shadow">Test Model</button>
+                        <button onclick="downloadCode()" class="bg-gray-800 text-white py-3 rounded-lg font-bold shadow">Get Code</button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <a href="${apiBase}${result.download_url}" class="block w-full bg-blue-100 text-blue-700 text-center py-2 rounded font-bold">Model</a>
+                        ${result.processed_url ? `<a href="${apiBase}${result.processed_url}" class="block w-full bg-green-100 text-green-700 text-center py-2 rounded font-bold">Data</a>` : ''}
+                    </div>`;
+                showContent('result-content');
+            } catch(e) { showError(e.message); }
+        }
+
+        // ... (Rest of functions: setupPrediction, runPrediction, downloadCode, Modals) ...
+        function setupPrediction() {
+            const form = document.getElementById('predict-form'); form.innerHTML = '';
+            const target = document.getElementById('targetSelect').value;
+            currentColumns.forEach(col => {
+                if(col.name === target) return;
+                const inp = col.type === 'Numeric' ? `<input type="number" step="any" id="in_${col.name}" class="w-full border rounded p-2" placeholder="0.0">` : `<input type="text" id="in_${col.name}" class="w-full border rounded p-2" placeholder="Value">`;
+                form.innerHTML += `<div><label class="block text-xs font-bold text-gray-500 uppercase mb-1">${col.name}</label>${inp}</div>`;
+            });
+            document.getElementById('predict-modal').classList.remove('hidden'); document.getElementById('prediction-result').classList.add('hidden');
+        }
+        async function runPrediction() {
+            const inputs = {}; document.querySelectorAll('#predict-form input').forEach(i => inputs[i.id.replace('in_', '')] = i.value);
+            try {
+                const res = await fetch(`${apiBase}/predict`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({session_id: sessionId, inputs: inputs})});
+                const data = await res.json();
+                document.getElementById('prediction-result').classList.remove('hidden'); document.getElementById('pred-value').innerText = data.prediction;
+            } catch(e) { alert(e.message); }
+        }
+        async function downloadCode() {
+             const plan = {}; document.querySelectorAll('.col-card').forEach(card => { const s = {}; card.querySelectorAll('select').forEach(sel => s[sel.dataset.setting] = sel.value); plan[card.dataset.col] = s; });
+             const res = await fetch(`${apiBase}/generate_code`, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({session_id: sessionId, plan: plan, target: document.getElementById('targetSelect').value, model: document.getElementById('modelSelect').value})});
+             const data = await res.json(); window.location.href = `${apiBase}${data.download_url}`;
+        }
+        function prepareModal(title) { document.getElementById('main-modal').classList.remove('hidden'); document.getElementById('modal-title').innerText = title; ['analysis-content', 'result-content', 'error-content'].forEach(id=>document.getElementById(id).classList.add('hidden')); document.getElementById('modal-loader').classList.remove('hidden'); }
+        function showContent(id) { document.getElementById('modal-loader').classList.add('hidden'); document.getElementById(id).classList.remove('hidden'); }
+        function showError(msg) { document.getElementById('modal-loader').classList.add('hidden'); document.getElementById('error-msg').innerText=msg; document.getElementById('error-content').classList.remove('hidden'); }
+        function closeModal() { document.getElementById('main-modal').classList.add('hidden'); }
+
+        // Init HPs
+        updateHyperparameters();
+    </script>
+</body>
+</html>

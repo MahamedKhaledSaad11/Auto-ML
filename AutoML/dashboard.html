@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Performance Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 text-slate-800 font-sans min-h-screen">
+    <nav class="bg-indigo-900 text-white p-4 shadow-lg sticky top-0 z-40 border-b-4 border-indigo-500">
+        <div class="container mx-auto flex justify-between items-center px-4">
+            <h1 class="text-2xl font-bold flex items-center gap-2 tracking-wide"><i class="fas fa-brain"></i> AutoML <span class="text-indigo-300">Dashboard</span></h1>
+            <a href="/" class="text-xs bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-full transition shadow-md text-white decoration-none flex items-center gap-2"><i class="fas fa-arrow-left"></i> Back to Training</a>
+        </div>
+    </nav>
+    <div class="container mx-auto p-8 max-w-7xl">
+        <div class="text-center mb-8">
+            <h2 class="text-4xl font-extrabold text-gray-800">Results & Analytics</h2>
+            <p class="text-gray-500 mt-2 text-lg">Compare performance across different datasets and algorithms.</p>
+        </div>
+
+        <div class="bg-white p-6 rounded-2xl shadow-md border border-gray-200 mb-8 flex flex-col md:flex-row gap-6 items-start">
+            <div class="w-full md:w-1/3">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Select Dataset (Project)</label>
+                <select id="projectFilter" class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:border-indigo-500 outline-none bg-gray-50 transition" onchange="updateAlgoOptions()">
+                    <option value="All">All Projects</option>
+                    {% for proj in projects %}
+                    <option value="{{ proj }}">{{ proj }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="w-full md:w-1/3">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Select Models (Hold Ctrl/Cmd to select multiple)</label>
+                <select id="algoFilter" multiple class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:border-indigo-500 outline-none bg-gray-50 transition h-32">
+                    <option value="All">All Algorithms</option>
+                </select>
+            </div>
+            <div class="w-full md:w-1/3 text-right self-end">
+                <button onclick="updateDashboard()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-bold shadow transition w-full md:w-auto"><i class="fas fa-filter mr-2"></i> Apply Filter</button>
+            </div>
+        </div>
+
+        <div class="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 mb-10">
+            <h3 class="text-2xl font-bold text-gray-800 flex items-center gap-3 mb-6"><span class="bg-indigo-100 text-indigo-600 p-2 rounded-lg"><i class="fas fa-chart-bar"></i></span> Accuracy Comparison</h3>
+            <div id="chart-container" class="flex justify-center items-center bg-slate-50 rounded-2xl p-6 min-h-[400px]">
+                {% if plot %}
+                    <img id="dashboard-plot" src="data:image/png;base64,{{ plot }}" class="max-h-[500px] w-full object-contain rounded-lg shadow-sm">
+                {% else %}
+                    <div class="text-center text-gray-400"><i class="fas fa-chart-area text-6xl mb-4 opacity-30"></i><p class="text-xl font-medium">No training data available.</p></div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div id="cm-section" class="hidden mb-10">
+            <h3 class="text-2xl font-bold text-gray-800 flex items-center gap-3 mb-6"><span class="bg-blue-100 text-blue-600 p-2 rounded-lg"><i class="fas fa-th"></i></span> Confusion Matrices</h3>
+            <div id="cm-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+
+        <div class="bg-white p-8 rounded-3xl shadow-xl border border-gray-100">
+            <h3 class="text-2xl font-bold text-gray-800 flex items-center gap-3 mb-6"><span class="bg-green-100 text-green-600 p-2 rounded-lg"><i class="fas fa-table"></i></span> Model Leaderboard</h3>
+            <div class="overflow-hidden rounded-xl border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Project</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase">Algorithm</th>
+                            <th class="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase">Accuracy</th>
+                            <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="bg-white divide-y divide-gray-200">
+                        {% for row in table_data %}
+                        <tr class="hover:bg-indigo-50 transition">
+                            <td class="px-6 py-4"><div class="flex items-center"><div class="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-full bg-blue-100 text-blue-600"><i class="fas fa-folder"></i></div><div class="ml-4 text-sm font-bold text-gray-900">{{ row.Project }}</div></div></td>
+                            <td class="px-6 py-4"><span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">{{ row.Algorithm }}</span></td>
+                            <td class="px-6 py-4 text-right"><span class="text-sm font-bold text-gray-900">{{ "%.2f"|format(row.Accuracy * 100) }}%</span><div class="w-full bg-gray-200 rounded-full h-1.5 mt-2"><div class="bg-indigo-600 h-1.5 rounded-full" style="width: {{ row.Accuracy * 100 }}%"></div></div></td>
+                            <td class="px-6 py-4 text-center">{% if row.Accuracy >= 0.90 %}<span class="text-green-600"><i class="fas fa-check-circle"></i></span>{% elif row.Accuracy >= 0.80 %}<span class="text-yellow-500"><i class="fas fa-exclamation-circle"></i></span>{% else %}<span class="text-red-500"><i class="fas fa-times-circle"></i></span>{% endif %}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="4" class="px-6 py-10 text-center text-gray-500 italic">No result files found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data passed from Flask to JS
+        const projectModels = {{ project_models | tojson }};
+
+        function updateAlgoOptions() {
+            const project = document.getElementById('projectFilter').value;
+            const algoSelect = document.getElementById('algoFilter');
+            algoSelect.innerHTML = '<option value="All">All Algorithms</option>';
+
+            if (project !== 'All' && projectModels[project]) {
+                projectModels[project].forEach(algo => {
+                    const opt = document.createElement('option');
+                    opt.value = algo;
+                    opt.innerText = algo;
+                    algoSelect.appendChild(opt);
+                });
+            } else {
+                // If All, show all unique algos (simplified logic)
+                const allAlgos = new Set();
+                Object.values(projectModels).forEach(list => list.forEach(a => allAlgos.add(a)));
+                allAlgos.forEach(algo => {
+                    const opt = document.createElement('option');
+                    opt.value = algo;
+                    opt.innerText = algo;
+                    algoSelect.appendChild(opt);
+                });
+            }
+        }
+
+        async function updateDashboard() {
+            const project = document.getElementById('projectFilter').value;
+            const algoSelect = document.getElementById('algoFilter');
+            const selectedAlgos = Array.from(algoSelect.selectedOptions).map(opt => opt.value);
+            
+            const container = document.getElementById('chart-container');
+            const cmContainer = document.getElementById('cm-container');
+            const cmSection = document.getElementById('cm-section');
+            
+            container.style.opacity = '0.5';
+
+            try {
+                const res = await fetch('/filter_dashboard', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ 
+                        project: project, 
+                        algorithms: selectedAlgos.includes('All') ? 'All' : selectedAlgos 
+                    })
+                });
+                
+                const data = await res.json();
+                
+                // 1. Update Accuracy Chart
+                if (data.plot) {
+                    container.innerHTML = `<img id="dashboard-plot" src="data:image/png;base64,${data.plot}" class="max-h-[500px] w-full object-contain rounded-lg shadow-sm fade-in">`;
+                } else {
+                    container.innerHTML = `<div class="text-center text-gray-400"><i class="fas fa-chart-area text-6xl mb-4 opacity-30"></i><p class="text-xl font-medium">No data matching filters.</p></div>`;
+                }
+
+                // 2. Update Confusion Matrices
+                cmContainer.innerHTML = '';
+                if (data.heatmaps && data.heatmaps.length > 0) {
+                    cmSection.classList.remove('hidden');
+                    data.heatmaps.forEach(hm => {
+                        cmContainer.innerHTML += `
+                            <div class="bg-white p-4 rounded-xl shadow border border-gray-100 fade-in">
+                                <h4 class="font-bold text-gray-700 text-center mb-3">${hm.title}</h4>
+                                <img src="data:image/png;base64,${hm.img}" class="w-full rounded">
+                            </div>`;
+                    });
+                } else {
+                    cmSection.classList.add('hidden');
+                }
+                
+                // 3. Update Table
+                const tbody = document.getElementById('table-body');
+                tbody.innerHTML = '';
+                if(data.data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-10 text-center text-gray-500 italic">No matching results found.</td></tr>`;
+                } else {
+                    data.data.forEach(row => {
+                        let statusIcon = '';
+                        if(row.Accuracy >= 0.90) statusIcon = '<span class="text-green-600"><i class="fas fa-check-circle"></i></span>';
+                        else if(row.Accuracy >= 0.80) statusIcon = '<span class="text-yellow-500"><i class="fas fa-exclamation-circle"></i></span>';
+                        else statusIcon = '<span class="text-red-500"><i class="fas fa-times-circle"></i></span>';
+
+                        const tr = `
+                        <tr class="hover:bg-indigo-50 transition fade-in">
+                            <td class="px-6 py-4"><div class="flex items-center"><div class="flex-shrink-0 h-10 w-10 flex items-center justify-center rounded-full bg-blue-100 text-blue-600"><i class="fas fa-folder"></i></div><div class="ml-4 text-sm font-bold text-gray-900">${row.Project}</div></div></td>
+                            <td class="px-6 py-4"><span class="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">${row.Algorithm}</span></td>
+                            <td class="px-6 py-4 text-right"><span class="text-sm font-bold text-gray-900">${(row.Accuracy * 100).toFixed(2)}%</span><div class="w-full bg-gray-200 rounded-full h-1.5 mt-2"><div class="bg-indigo-600 h-1.5 rounded-full" style="width: ${row.Accuracy * 100}%"></div></div></td>
+                            <td class="px-6 py-4 text-center text-lg">${statusIcon}</td>
+                        </tr>`;
+                        tbody.innerHTML += tr;
+                    });
+                }
+
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+            } finally {
+                container.style.opacity = '1';
+            }
+        }
+
+        // Initialize algos on load
+        updateAlgoOptions();
+    </script>
+    <style>
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</body>
+</html>

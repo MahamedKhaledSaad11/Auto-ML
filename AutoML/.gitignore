@@ -1,0 +1,22 @@
+# --- Python Basics ---
+__pycache__/
+*.pyc
+venv/
+.env
+
+# --- Project Specific (Very Important) ---
+# Do not upload user data or large model files
+uploads/
+models/
+Datasets/
+results/
+
+# --- File Types to Ignore ---
+*.csv
+*.xlsx
+*.pkl
+*.json
+
+# --- Editor/OS Junk ---
+.vscode/
+.DS_Store
