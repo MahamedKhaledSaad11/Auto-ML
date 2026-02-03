@@ -77,9 +77,11 @@ def get_df_info(df):
     return columns_info
 
 def get_all_results():
+    base_dir = os.path.dirname(os.path.abspath(__file__))
     def load_json(filename):
-        if os.path.exists(filename):
-            with open(filename, 'r') as f: return json.load(f)
+        full_path = os.path.join(base_dir, filename)
+        if os.path.exists(full_path):
+            with open(full_path, 'r') as f: return json.load(f)
         return {}
 
     spam_res = load_json("results_spam.json")
